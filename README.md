@@ -44,7 +44,16 @@ Left-click a spell to start its cooldown timer.
 
 Right-click resets the spell back to "up".
 
-Shift + Click allows manual timer input.
+To enable Team-sync you must provide a Firebase Realtime Database URL and credentials.
+
+1. Create a Firebase project at https://console.firebase.google.com/.
+2. Enable Realtime Database and set rules or authentication as needed.
+3. Obtain your Realtime Database URL (something like `https://your-project-id-default-rtdb.firebaseio.com`) from the Database panel and paste it in your .env file as:
+FIREBASE_DB_URL=https://YOURDATABASEHERE.firebasedatabase.app/
+4. In the Firebase console, open Settings > Service Accounts, click Generate New Private Key, then confirm by clicking Generate Key.
+5. Store the JSON downloaded into the /src folder and name it as firebaseKey.json
+6. Share the same FIREBASE_DB_URL and firebaseKey.json with your teammates and you are ready to start using the Team-Sync feature
+
 
 ### 🧩 The future of this app
 Well, as stated initially, it all started as a fun / meme project to prove a point. Since it's well received by the community I might continue improving and developing the app with the following features:

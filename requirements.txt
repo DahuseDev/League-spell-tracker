@@ -4,3 +4,4 @@ requests
 re
 time
 pystray
+python-dotenv

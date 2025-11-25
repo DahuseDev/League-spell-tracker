@@ -3,18 +3,26 @@ from weakref import ref
 import firebase_admin
 import re
 from firebase_admin import credentials,db
-
+import json
+import os
+from dotenv import load_dotenv
+load_dotenv()
 class FirebaseSync:
     _instance = None
     match_id: str = ""
-
+    DB_URL = os.getenv("FIREBASE_DB_URL")
+    DEFAULT_DB_URL = "https://leaguespelltracker-default-rtdb.europe-west1.firebasedatabase.app/"
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cred = credentials.Certificate("src/firebaseKey.json")
-            firebase_admin.initialize_app(cred, {
-                "databaseURL": "https://leaguespelltracker-default-rtdb.europe-west1.firebasedatabase.app/"
-            })
+            try:
+                firebase_admin.initialize_app(cred, {
+                    "databaseURL": cls.DB_URL or cls.DEFAULT_DB_URL
+                })
+            except Exception as e:
+                print(f"[FIREBASE] Initialization error: {e}")
+                pass
         return cls._instance
     # "/Sett fanatic#SETTilouteur84#biteMaren Gain#GarenPulz Say Run#EUWDekyl#EUW"
     def setMatchID(self, match_id):
