@@ -1,0 +1,42 @@
+# Ignore sensitive keys
+src/firebaseKey.json
+
+# Distribution/build artifacts
+dist/
+build/
+release/
+pip-wheel-metadata/
+*.egg-info/
+*.exe
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / editor settings
+.vscode/
+.idea/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Misc
+userdata.json
+*.log
+*.sqlite3
+*.db
+.DS_Store
+Thumbs.db
+desktop.ini
+.env
+.mypy_cache/

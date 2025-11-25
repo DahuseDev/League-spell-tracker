@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#pip install requests tqdm
 """
 Download League of Legends champion portraits and ultimate (R) icons
 from Riot Data Dragon into:
@@ -16,8 +17,8 @@ from tqdm import tqdm
 
 # -------------------- Config --------------------
 LANG = "en_US"  # change if you want another locale’s champion data
-OUT_HEROES = Path("heroes")
-OUT_ULTS   = Path("ultimates")
+OUT_HEROES = Path("res/heroes")
+OUT_ULTS   = Path("res/ultimates")
 RETRY_COUNT = 3
 TIMEOUT = 10
 
