@@ -1,13 +1,9 @@
-from logging import root
-import sys, re, unicodedata, os, time, json
+import re, unicodedata, os, time, json
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Tuple
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QSlider,
-    QToolButton, QFrame, QSizePolicy, QStackedLayout, QMessageBox, QInputDialog
-)
-from PySide6.QtCore import Qt, QPoint, QSize, QRect, QThread, Signal, QTimer
-from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence, QPixmap, QFont
+from PySide6.QtWidgets import QWidget, QSizePolicy
+from PySide6.QtCore import Qt, QSize, QRect, QTimer, QRectF
+from PySide6.QtGui import QPainter, QColor, QPixmap, QFont, QPainterPath
 from src.FirebaseSync import FirebaseSync
 # ============================== GRID CONTENT ==================================
 
@@ -18,7 +14,7 @@ class GridWidget(QWidget):
       row 1: summoner #1
       row 2: summoner #2
       row 3: ultimate
-    Click: left=start, shift+left=custom, right=reset
+    Click: left=start, right=reset
     """
     def __init__(self, scale: float = 1.0, parent=None):
         super().__init__(parent)
@@ -51,7 +47,8 @@ class GridWidget(QWidget):
         now = int(time.time())
         duration = 0
         if spell == "ultimate":
-            duration = self._ult_base_cd(champ)
+            #duration = self._ult_base_cd(champ)
+            return
         else:
             duration = self._spell_base_cd(spell)
         try:
@@ -61,15 +58,13 @@ class GridWidget(QWidget):
         if duration <= 0:
             return
         key = None
-        for col in range(len(self.content.enemies)):
-            if self.content.enemies[col].champion == champ:
-                if spell == "ultimate":
-                    key = (3, col)
-                else:
-                    if self.content.enemies[col].spells[0] == spell:
-                        key = (1, col)
-                    elif self.content.enemies[col].spells[1] == spell:
-                        key = (2, col)
+        # ahora los enemigos están en filas
+        for row in range(len(self.content.enemies)):
+            if self.content.enemies[row].champion == champ:
+                if self.content.enemies[row].spells[0] == spell:
+                    key = (row, 1)
+                elif self.content.enemies[row].spells[1] == spell:
+                    key = (row, 2)
                 if key:
                     break
         if not key:
@@ -102,17 +97,18 @@ class GridWidget(QWidget):
     def sizeHint(self) -> QSize:
         m, s = self.metrics, self._scale
         margin = int(m.margin * s); spacing = int(m.spacing * s); square = int(m.square * s)
-        grid_w = 5 * square + 4 * spacing
-        grid_h = square + (spacing // 2) + 3 * square + 2 * spacing
+        extra = int(m.champion_gap * s)
+        grid_w = 3 * square + 2 * spacing + extra
+        grid_h = 5 * square + 4 * spacing
         return QSize(grid_w + 2 * margin, grid_h + 2 * margin)
 
     def cell_rect(self, row: int, col: int) -> QRect:
         m, s = self.metrics, self._scale
         margin = int(m.margin * s); spacing = int(m.spacing * s); square = int(m.square * s)
-        if row == 0: y0 = margin
-        else: y0 = margin + square + spacing // 2 + spacing + (row - 1) * (square + spacing)
-        x = margin + col * (square + spacing)
-        return QRect(x, y0, square, square)
+        extra = int(m.champion_gap * s)
+        x = margin + col * (square + spacing) + (extra if col > 0 else 0)
+        y = margin + row * (square + spacing)
+        return QRect(x, y, square, square)
 
     def _get_pixmap(self, path: str) -> Optional[QPixmap]:
         if not path: return None
@@ -130,44 +126,35 @@ class GridWidget(QWidget):
 
             m, s = self.metrics, self._scale
             margin = int(m.margin * s); spacing = int(m.spacing * s); square = int(m.square * s)
-
-            # grid outlines
-            for c in range(5):
-                p.drawRect(self.cell_rect(0, c))
-            y_sep = margin + square + spacing // 2
-            p.drawLine(margin, y_sep, margin + 5 * (square + spacing) - spacing, y_sep)
-            for r in range(1, 4):
-                for c in range(5):
-                    p.drawRect(self.cell_rect(r, c))
-
-            # contents
+            extra = int(m.champion_gap * s)
+            radius = max(6, int(8 * s))
+            # grid outlines (3 columnas x 5 filas)
+            for r in range(5):
+                for c in range(3):
+                    rect = self.cell_rect(r, c)
+                    p.drawRoundedRect(rect, radius, radius)
+            
+            # contents: ahora cada enemigo es una fila (hasta 5)
             for i in range(min(5, len(self.content.enemies))):
-                # champions
-                rect0 = self.cell_rect(0, i)
+                # champion (col 0)
+                rect0 = self.cell_rect(i, 0)
                 pm = self._get_pixmap(self.content.hero_path(i))
-                if pm: draw_pixmap_fit_center(p, pm, rect0)
+                if pm: draw_pixmap_fit_center(p, pm, rect0, radius)
                 else:  self._draw_label(p, rect0, self.content.enemies[i].champion)
 
-                # spell1
-                rect1 = self.cell_rect(1, i)
+                # spell1 (col 1)
+                rect1 = self.cell_rect(i, 1)
                 pm = self._get_pixmap(self.content.spell1_path(i))
-                if pm: draw_pixmap_fit_center(p, pm, rect1)
+                if pm: draw_pixmap_fit_center(p, pm, rect1, radius)
                 else:  self._draw_label(p, rect1, self.content.enemies[i].spells[0] or "—")
-                self._draw_timer_overlay(p, 1, i, rect1)
+                self._draw_timer_overlay(p, i, 1, rect1)
 
-                # spell2
-                rect2 = self.cell_rect(2, i)
+                # spell2 (col 2)
+                rect2 = self.cell_rect(i, 2)
                 pm = self._get_pixmap(self.content.spell2_path(i))
-                if pm: draw_pixmap_fit_center(p, pm, rect2)
+                if pm: draw_pixmap_fit_center(p, pm, rect2, radius)
                 else:  self._draw_label(p, rect2, self.content.enemies[i].spells[1] or "—")
-                self._draw_timer_overlay(p, 2, i, rect2)
-
-                # ultimate
-                rect3 = self.cell_rect(3, i)
-                pm = self._get_pixmap(self.content.ultimate_path(i))
-                if pm: draw_pixmap_fit_center(p, pm, rect3)
-                else:  self._draw_label(p, rect3, "R")
-                self._draw_timer_overlay(p, 3, i, rect3)
+                self._draw_timer_overlay(p, i, 2, rect2)
         finally:
             p.end()
 
@@ -219,40 +206,41 @@ class GridWidget(QWidget):
         if e.button() not in (Qt.LeftButton, Qt.RightButton):
             return super().mousePressEvent(e)
         pos = e.position().toPoint()
-        for row in range(4):
-            for col in range(5):
+        for row in range(5):
+            for col in range(3):
                 r = self.cell_rect(row, col)
                 if r.contains(pos):
                     self._handle_cell_click(row, col, e); return
         super().mousePressEvent(e)
 
     def _handle_cell_click(self, row: int, col: int, e):
-        if row == 0:  # champs: no timer
+        # ahora cada fila es un enemigo; col 0 = champion (sin timer)
+        if col == 0:
             return
         if e.button() == Qt.RightButton: # reset
             t = self.timers.get((row, col))
             if t: t.reset(); self.update()
-            FirebaseSync().reset_spell(row, col)
+            # reset usando champ + spell para mantener semántica
+            if row < len(self.content.enemies):
+                champ = self.content.enemies[row].champion
+                if col == 1:
+                    disp = self.content.enemies[row].spells[0]
+                elif col == 2:
+                    disp = self.content.enemies[row].spells[1]
+                else:
+                    #disp = "ultimate"
+                    return
+                FirebaseSync().reset_spell(champ, disp)
             return
         duration = 0
-        champ = self.content.enemies[col].champion
-        if row in (1, 2): # summoners
-            if col < len(self.content.enemies):
-                idx = 0 if row == 1 else 1
-                disp = self.content.enemies[col].spells[idx]
+        if row < len(self.content.enemies):
+            champ = self.content.enemies[row].champion
+            if col in (1, 2): # summoners
+                idx = 0 if col == 1 else 1
+                disp = self.content.enemies[row].spells[idx]
                 duration = self._spell_base_cd(disp)
                 FirebaseSync().mark_spell_used(champ, disp)
                 print(f"[GRID] Marked spell used: {champ} - {disp}")
-        elif row == 3: # ultimate
-            if col < len(self.content.enemies):
-                duration = self._ult_base_cd(champ)
-                FirebaseSync().mark_spell_used(champ, "ultimate")
-                print(f"[GRID] Marked ultimate used: {champ} - ultimate")
-        if (e.modifiers() & Qt.ShiftModifier) or duration <= 0:
-            from PySide6.QtWidgets import QInputDialog
-            secs, ok = QInputDialog.getInt(self, "Custom cooldown", "Seconds:", max(0, duration), 0, 9999, 1)
-            if not ok: return
-            duration = secs
         t = self.timers.get((row, col))
         if not t: t = CellTimer(); self.timers[(row, col)] = t
         t.start(float(duration)); self.update()
@@ -309,6 +297,7 @@ class GridMetrics:
     margin: int = 20
     spacing: int = 10
     square: int = 50
+    champion_gap: int = 20
 
 @dataclass
 class CellTimer:
@@ -396,13 +385,21 @@ def slugify(name: str) -> str:
     s = re.sub(r"_+", "_", s).strip("_")
     return s
 
-def draw_pixmap_fit_center(p: QPainter, pix: QPixmap, rect: QRect):
+def draw_pixmap_fit_center(p: QPainter, pix: QPixmap, rect: QRect, radius: int = 0):
     if pix.isNull() or rect.width() <= 0 or rect.height() <= 0:
         return
     target = pix.scaled(rect.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
     x = rect.x() + (rect.width() - target.width()) // 2
     y = rect.y() + (rect.height() - target.height()) // 2
-    p.drawPixmap(x, y, target)
+    p.save()
+    try:
+        if radius and radius > 0:
+            path = QPainterPath()
+            path.addRoundedRect(QRectF(rect), float(radius), float(radius))
+            p.setClipPath(path)
+        p.drawPixmap(x, y, target)
+    finally:
+        p.restore()
 
 def fmt_mmss(seconds: float) -> str:
     if seconds < 0: seconds = 0

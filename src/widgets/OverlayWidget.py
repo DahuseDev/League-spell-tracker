@@ -1,18 +1,16 @@
-from logging import root
 import sys
 from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QSlider,
     QToolButton, QFrame, QSizePolicy, QStackedLayout, QMessageBox
 )
-from PySide6.QtCore import Qt, QPoint, QSize, QTimer
-from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence
+from PySide6.QtCore import Qt, QPoint, QSize, QRectF
+from PySide6.QtGui import QPainter, QColor, QPainterPath
 from src.workers.GameStateWorker import GameStateWorker
 from src.workers.TopmostWorker import TopmostWorker
 from src.workers.LocalSyncWorker import LocalSyncWorker
 from .GridWidget import GridWidget
 from src.UserData import UserData
-from src.commons import is_in_game
 
 # ============================== MAIN OVERLAY ==================================
 class OverlayWidget(QWidget):
@@ -28,6 +26,7 @@ class OverlayWidget(QWidget):
         self.userData = UserData()
         self._drag_pos: Optional[QPoint] = None
         self._locked = False
+        self._in_game = False
         self._page = 0
         self._scale = self.userData.get("overlay_scale", 0.70)
         self._default_opacity = self.userData.get("overlay_opacity", 0.40)
@@ -71,8 +70,7 @@ class OverlayWidget(QWidget):
         self.slider_scale.valueChanged.connect(self.on_scale_changed); sc_row.addWidget(self.slider_scale,1)
         self.scale_lbl = QLabel(f"{int(self._scale*100)}%", page_settings); self.scale_lbl.setStyleSheet("color: white; min-width: 44px;"); sc_row.addWidget(self.scale_lbl,0)
         ps_layout.addLayout(sc_row)
-
-        help_lbl = QLabel("Shortcuts:\n• Ctrl+L — Lock/Unlock\n• Ctrl+, — Toggle settings\n• Shift+Click — Custom cooldown\n• Right-click — Reset timer")
+        help_lbl = QLabel("Controls:\n• Left-click — Start timer\n• Right-click — Reset timer")
         help_lbl.setStyleSheet("color: white;"); ps_layout.addWidget(help_lbl,0)
         self.stack.addWidget(page_settings)
 
@@ -82,28 +80,70 @@ class OverlayWidget(QWidget):
 
         self.load_position()
 
-        # shortcuts
-        QShortcut(QKeySequence("Ctrl+L"), self, activated=self.toggle_lock)
-        QShortcut(QKeySequence("Ctrl++"), self, activated=lambda: self.bump_opacity(+5))
-        QShortcut(QKeySequence("Ctrl+="), self, activated=lambda: self.bump_opacity(+5))
-        QShortcut(QKeySequence("Ctrl+-"), self, activated=lambda: self.bump_opacity(-5))
-        QShortcut(QKeySequence("Ctrl+,"), self, activated=self.toggle_page)
-
         # topmost heartbeat (Windows): reassert every 3s just in case
         if IS_WINDOWS:
             self._topmost_worker = TopmostWorker()
             self._topmost_worker.status.connect(self._on_topmost_status)
             self._topmost_worker.start()
 
-        self._in_game = is_in_game()
-        if self._in_game:
-            QTimer.singleShot(0, self.on_sync_clicked)
-
         self._game_worker = GameStateWorker()
         self._game_worker.status.connect(self._on_game_state)
         self._game_worker.start()
 
         self.show()
+
+    # panel paint (explicit end to silence warnings)
+    def paintEvent(self, _):
+        p = QPainter(self)
+        try:
+            p.setRenderHint(QPainter.Antialiasing)
+            p.setPen(QColor(255, 255, 255, 60))
+
+            # compute rounded rect and radius (scale-aware)
+            rectf = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+            radius = max(8, int(8 * getattr(self, "_scale", 1.0)))
+
+            # background brush: different when dragging
+            if self._drag_pos is not None:
+                p.setBrush(QColor(50, 50, 50, 120))
+            else:
+                p.setBrush(QColor(30, 30, 30, 5))
+
+            p.drawRoundedRect(rectf, float(radius), float(radius))
+
+            try:
+                path = QPainterPath()
+                path.addRoundedRect(rectf, float(radius), float(radius))
+                region = QRegion(path.toFillPolygon().toPolygon())
+                self.setMask(region)
+            except Exception:
+                pass
+        finally:
+            p.end()
+
+    def closeEvent(self, e):
+            try:
+                self.save_position()
+            except Exception:
+                pass
+            # stop workers cleanly
+            if IS_WINDOWS and getattr(self, "_topmost_worker", None):
+                try:
+                    self._topmost_worker.stop()
+                    self._topmost_worker.wait(1000)
+                except Exception:
+                    pass
+            if getattr(self, "_game_worker", None):
+                try:
+                    self._game_worker.stop()
+                    self._game_worker.wait(1000)
+                except Exception:
+                    pass
+            return super().closeEvent(e)
+
+############################################
+######## Topmost handling (Windows) ########
+############################################
 
     def _on_topmost_status(self, league_active_window: bool):
         HWND_TOPMOST = -1
@@ -132,42 +172,31 @@ class OverlayWidget(QWidget):
         except Exception as e:
             print("[TOPMOST] Error updating window state:", e)
 
-    def closeEvent(self, e):
-            try:
-                self.save_position()
-            except Exception:
-                pass
-            # stop workers cleanly
-            if IS_WINDOWS and getattr(self, "_topmost_worker", None):
-                try:
-                    self._topmost_worker.stop()
-                    self._topmost_worker.wait(1000)
-                except Exception:
-                    pass
-            if getattr(self, "_game_worker", None):
-                try:
-                    self._game_worker.stop()
-                    self._game_worker.wait(1000)
-                except Exception:
-                    pass
-            return super().closeEvent(e)
+#############################################
+############ Game state handling ############
+#############################################
 
-    # panel paint (explicit end to silence warnings)
-    def paintEvent(self, _):
-        p = QPainter(self)
-        try:
-            p.setRenderHint(QPainter.Antialiasing)
-            p.setPen(QColor(255, 255, 255, 60))
-            #if dragging
-            if self._drag_pos is not None:
-                p.setBrush(QColor(50, 50, 50, 120))
-            else:
-                p.setBrush(QColor(30, 30, 30, 5))
-            p.drawRect(self.rect().adjusted(0, 0, -1, -1))
-        finally:
-            p.end()
+    def _on_game_state(self, in_game: bool):
+        """Called from GameStateWorker (main thread) with the latest in-game status."""
+        # game started
+        if in_game and not getattr(self, "_in_game", False):
+            print("[AUTO-SYNC] Game started, attempting sync…")
+            # don't start another worker if one is already running
+            if not getattr(self, "worker", None) or not self.worker.isRunning():
+                self.worker = LocalSyncWorker()
+                self.worker.finished_ok.connect(self.on_sync_ok)
+                self.worker.failed.connect(self.on_sync_fail)
+                self.worker.start()
+                self.loaded = True
+        elif not in_game and getattr(self, "_in_game", False):
+            print("[AUTO-SYNC] Game ended, clearing grid.")
+            self.grid.clear()
+            self.loaded = False
 
-    # drag
+############################################
+########### Mouse drag handling ############
+############################################
+
     def mousePressEvent(self, e):
         if not self._locked and e.button() == Qt.LeftButton:
             self._drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft(); e.accept()
@@ -192,25 +221,23 @@ class OverlayWidget(QWidget):
         else:
             super().mouseReleaseEvent(e)
 
-    # controls
+############################################
+######### UI event handlers ################
+############################################
+
     def on_opacity_changed(self, val):
         self.setWindowOpacity(val/100.0); self.value_lbl.setText(f"{val}%")
         self.userData.set("overlay_opacity", val/100.0)
-
-    def bump_opacity(self, delta):
-        self.slider_opacity.setValue(max(self.slider_opacity.minimum(), min(self.slider_opacity.maximum(), self.slider_opacity.value()+delta)))
 
     def on_scale_changed(self, val):
         self._scale = val/100.0; self.scale_lbl.setText(f"{val}%")
         self.grid.set_scale(self._scale); self.adjust_to_content(); #force_topmost(self)
         self.userData.set("overlay_scale", val/100.0)
 
-    # page + lock (reassert topmost)
     def toggle_lock(self):
         self._locked = not self._locked
         self.lock_btn.setText("🔒" if self._locked else "🔓")
         self.setCursor(Qt.ArrowCursor if self._locked else Qt.OpenHandCursor)
-        # force_topmost(self)
 
     def toggle_page(self):
         self._page = 1 - self._page; self.stack.setCurrentIndex(self._page); self.adjust_to_content(); #force_topmost(self)
@@ -220,6 +247,10 @@ class OverlayWidget(QWidget):
         content = self.stack.currentWidget(); hint = content.sizeHint()
         w = hint.width() + 2*self.BASE_PAD; h = hint.height() + 2*self.BASE_PAD + self.BTN_H + 6
         self.setMinimumSize(QSize(w,h)); self.resize(w,h); self.move(tl)
+
+############################################
+######### Position persistence #############
+############################################
 
     def save_position(self):
         """Save current top-left screen position to userData."""
@@ -238,13 +269,9 @@ class OverlayWidget(QWidget):
             except Exception:
                 pass
 
-    # sync
-    def on_sync_clicked(self):
-        # print("[SYNC] Checking local client for active match…")
-        self.worker = LocalSyncWorker()
-        self.worker.finished_ok.connect(self.on_sync_ok)
-        self.worker.failed.connect(self.on_sync_fail)
-        self.worker.start()
+############################################
+######### Sync handling ####################
+############################################
 
     def on_sync_ok(self, enemies: list):
         print("[SYNC] Retrieved enemy data:")
@@ -259,21 +286,6 @@ class OverlayWidget(QWidget):
         print("[SYNC] Failed:", msg); QMessageBox.information(self, "Sync", msg)#; force_topmost(self)
         self.grid.clear()
 
-    def _on_game_state(self, in_game: bool):
-        """Called from GameStateWorker (main thread) with the latest in-game status."""
-        # game started
-        if in_game and not getattr(self, "_in_game", False):
-            print("[AUTO-SYNC] Game started, attempting sync…")
-            # don't start another worker if one is already running
-            if not getattr(self, "worker", None) or not self.worker.isRunning():
-                self.on_sync_clicked()
-                self.loaded = True
 
-        # game ended
-        elif not in_game and getattr(self, "_in_game", False):
-            print("[AUTO-SYNC] Game ended, clearing grid.")
-            self.grid.clear()
-            self.loaded = False
-        self._in_game = in_game
 
 IS_WINDOWS = sys.platform.startswith("win")

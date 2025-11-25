@@ -47,7 +47,7 @@ class FirebaseSync:
         ref.set({"usedAt": timestamp})
 
     def reset_spell(self, champ, spell):
-        timestamp = int(time.time()) + 600
+        timestamp = int(time.time()) - 600
         spell = self.sanitize_spell(spell)
         print(f"[FIREBASE] Resetting spell: {champ} - {spell}")
         ref = db.reference(f"/{self.match_id}/{champ}/{spell}")
