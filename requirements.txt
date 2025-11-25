@@ -3,3 +3,4 @@ pyrebase4
 requests
 pystray
 python-dotenv
+pyinstaller
