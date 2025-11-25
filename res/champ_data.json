@@ -1,0 +1,521 @@
+{
+  "version": "15.23.1",
+  "champions": [
+    {
+      "Aatrox": "Aatrox"
+    },
+    {
+      "Ahri": "Ahri"
+    },
+    {
+      "Akali": "Akali"
+    },
+    {
+      "Akshan": "Akshan"
+    },
+    {
+      "Alistar": "Alistar"
+    },
+    {
+      "Ambessa": "Ambessa"
+    },
+    {
+      "Amumu": "Amumu"
+    },
+    {
+      "Anivia": "Anivia"
+    },
+    {
+      "Annie": "Annie"
+    },
+    {
+      "Aphelios": "Aphelios"
+    },
+    {
+      "Ashe": "Ashe"
+    },
+    {
+      "Aurelion Sol": "Aurelion Sol"
+    },
+    {
+      "Aurora": "Aurora"
+    },
+    {
+      "Azir": "Azir"
+    },
+    {
+      "Bardo": "Bard"
+    },
+    {
+      "Bel'Veth": "Bel'Veth"
+    },
+    {
+      "Blitzcrank": "Blitzcrank"
+    },
+    {
+      "Brand": "Brand"
+    },
+    {
+      "Braum": "Braum"
+    },
+    {
+      "Briar": "Briar"
+    },
+    {
+      "Caitlyn": "Caitlyn"
+    },
+    {
+      "Camille": "Camille"
+    },
+    {
+      "Cassiopeia": "Cassiopeia"
+    },
+    {
+      "Cho'Gath": "Cho'Gath"
+    },
+    {
+      "Corki": "Corki"
+    },
+    {
+      "Darius": "Darius"
+    },
+    {
+      "Diana": "Diana"
+    },
+    {
+      "Draven": "Draven"
+    },
+    {
+      "Dr. Mundo": "Dr. Mundo"
+    },
+    {
+      "Ekko": "Ekko"
+    },
+    {
+      "Elise": "Elise"
+    },
+    {
+      "Evelynn": "Evelynn"
+    },
+    {
+      "Ezreal": "Ezreal"
+    },
+    {
+      "Fiddlesticks": "Fiddlesticks"
+    },
+    {
+      "Fiora": "Fiora"
+    },
+    {
+      "Fizz": "Fizz"
+    },
+    {
+      "Galio": "Galio"
+    },
+    {
+      "Gangplank": "Gangplank"
+    },
+    {
+      "Garen": "Garen"
+    },
+    {
+      "Gnar": "Gnar"
+    },
+    {
+      "Gragas": "Gragas"
+    },
+    {
+      "Graves": "Graves"
+    },
+    {
+      "Gwen": "Gwen"
+    },
+    {
+      "Hecarim": "Hecarim"
+    },
+    {
+      "Heimerdinger": "Heimerdinger"
+    },
+    {
+      "Hwei": "Hwei"
+    },
+    {
+      "Illaoi": "Illaoi"
+    },
+    {
+      "Irelia": "Irelia"
+    },
+    {
+      "Ivern": "Ivern"
+    },
+    {
+      "Janna": "Janna"
+    },
+    {
+      "Jarvan IV": "Jarvan IV"
+    },
+    {
+      "Jax": "Jax"
+    },
+    {
+      "Jayce": "Jayce"
+    },
+    {
+      "Jhin": "Jhin"
+    },
+    {
+      "Jinx": "Jinx"
+    },
+    {
+      "Kai'Sa": "Kai'Sa"
+    },
+    {
+      "Kalista": "Kalista"
+    },
+    {
+      "Karma": "Karma"
+    },
+    {
+      "Karthus": "Karthus"
+    },
+    {
+      "Kassadin": "Kassadin"
+    },
+    {
+      "Katarina": "Katarina"
+    },
+    {
+      "Kayle": "Kayle"
+    },
+    {
+      "Kayn": "Kayn"
+    },
+    {
+      "Kennen": "Kennen"
+    },
+    {
+      "Kha'Zix": "Kha'Zix"
+    },
+    {
+      "Kindred": "Kindred"
+    },
+    {
+      "Kled": "Kled"
+    },
+    {
+      "Kog'Maw": "Kog'Maw"
+    },
+    {
+      "K'Sante": "K'Sante"
+    },
+    {
+      "LeBlanc": "LeBlanc"
+    },
+    {
+      "Lee Sin": "Lee Sin"
+    },
+    {
+      "Leona": "Leona"
+    },
+    {
+      "Lillia": "Lillia"
+    },
+    {
+      "Lissandra": "Lissandra"
+    },
+    {
+      "Lucian": "Lucian"
+    },
+    {
+      "Lulu": "Lulu"
+    },
+    {
+      "Lux": "Lux"
+    },
+    {
+      "Malphite": "Malphite"
+    },
+    {
+      "Malzahar": "Malzahar"
+    },
+    {
+      "Maokai": "Maokai"
+    },
+    {
+      "Maestro Yi": "Master Yi"
+    },
+    {
+      "Mel": "Mel"
+    },
+    {
+      "Milio": "Milio"
+    },
+    {
+      "Miss Fortune": "Miss Fortune"
+    },
+    {
+      "Wukong": "Wukong"
+    },
+    {
+      "Mordekaiser": "Mordekaiser"
+    },
+    {
+      "Morgana": "Morgana"
+    },
+    {
+      "Naafiri": "Naafiri"
+    },
+    {
+      "Nami": "Nami"
+    },
+    {
+      "Nasus": "Nasus"
+    },
+    {
+      "Nautilus": "Nautilus"
+    },
+    {
+      "Neeko": "Neeko"
+    },
+    {
+      "Nidalee": "Nidalee"
+    },
+    {
+      "Nilah": "Nilah"
+    },
+    {
+      "Nocturne": "Nocturne"
+    },
+    {
+      "Nunu y Willump": "Nunu & Willump"
+    },
+    {
+      "Olaf": "Olaf"
+    },
+    {
+      "Orianna": "Orianna"
+    },
+    {
+      "Ornn": "Ornn"
+    },
+    {
+      "Pantheon": "Pantheon"
+    },
+    {
+      "Poppy": "Poppy"
+    },
+    {
+      "Pyke": "Pyke"
+    },
+    {
+      "Qiyana": "Qiyana"
+    },
+    {
+      "Quinn": "Quinn"
+    },
+    {
+      "Rakan": "Rakan"
+    },
+    {
+      "Rammus": "Rammus"
+    },
+    {
+      "Rek'Sai": "Rek'Sai"
+    },
+    {
+      "Rell": "Rell"
+    },
+    {
+      "Renata Glasc": "Renata Glasc"
+    },
+    {
+      "Renekton": "Renekton"
+    },
+    {
+      "Rengar": "Rengar"
+    },
+    {
+      "Riven": "Riven"
+    },
+    {
+      "Rumble": "Rumble"
+    },
+    {
+      "Ryze": "Ryze"
+    },
+    {
+      "Samira": "Samira"
+    },
+    {
+      "Sejuani": "Sejuani"
+    },
+    {
+      "Senna": "Senna"
+    },
+    {
+      "Seraphine": "Seraphine"
+    },
+    {
+      "Sett": "Sett"
+    },
+    {
+      "Shaco": "Shaco"
+    },
+    {
+      "Shen": "Shen"
+    },
+    {
+      "Shyvana": "Shyvana"
+    },
+    {
+      "Singed": "Singed"
+    },
+    {
+      "Sion": "Sion"
+    },
+    {
+      "Sivir": "Sivir"
+    },
+    {
+      "Skarner": "Skarner"
+    },
+    {
+      "Smolder": "Smolder"
+    },
+    {
+      "Sona": "Sona"
+    },
+    {
+      "Soraka": "Soraka"
+    },
+    {
+      "Swain": "Swain"
+    },
+    {
+      "Sylas": "Sylas"
+    },
+    {
+      "Syndra": "Syndra"
+    },
+    {
+      "Tahm Kench": "Tahm Kench"
+    },
+    {
+      "Taliyah": "Taliyah"
+    },
+    {
+      "Talon": "Talon"
+    },
+    {
+      "Taric": "Taric"
+    },
+    {
+      "Teemo": "Teemo"
+    },
+    {
+      "Thresh": "Thresh"
+    },
+    {
+      "Tristana": "Tristana"
+    },
+    {
+      "Trundle": "Trundle"
+    },
+    {
+      "Tryndamere": "Tryndamere"
+    },
+    {
+      "Twisted Fate": "Twisted Fate"
+    },
+    {
+      "Twitch": "Twitch"
+    },
+    {
+      "Udyr": "Udyr"
+    },
+    {
+      "Urgot": "Urgot"
+    },
+    {
+      "Varus": "Varus"
+    },
+    {
+      "Vayne": "Vayne"
+    },
+    {
+      "Veigar": "Veigar"
+    },
+    {
+      "Vel'Koz": "Vel'Koz"
+    },
+    {
+      "Vex": "Vex"
+    },
+    {
+      "Vi": "Vi"
+    },
+    {
+      "Viego": "Viego"
+    },
+    {
+      "Viktor": "Viktor"
+    },
+    {
+      "Vladimir": "Vladimir"
+    },
+    {
+      "Volibear": "Volibear"
+    },
+    {
+      "Warwick": "Warwick"
+    },
+    {
+      "Xayah": "Xayah"
+    },
+    {
+      "Xerath": "Xerath"
+    },
+    {
+      "Xin Zhao": "Xin Zhao"
+    },
+    {
+      "Yasuo": "Yasuo"
+    },
+    {
+      "Yone": "Yone"
+    },
+    {
+      "Yorick": "Yorick"
+    },
+    {
+      "Yunara": "Yunara"
+    },
+    {
+      "Yuumi": "Yuumi"
+    },
+    {
+      "Zaahen": "Zaahen"
+    },
+    {
+      "Zac": "Zac"
+    },
+    {
+      "Zed": "Zed"
+    },
+    {
+      "Zeri": "Zeri"
+    },
+    {
+      "Ziggs": "Ziggs"
+    },
+    {
+      "Zilean": "Zilean"
+    },
+    {
+      "Zoe": "Zoe"
+    },
+    {
+      "Zyra": "Zyra"
+    }
+  ]
+}

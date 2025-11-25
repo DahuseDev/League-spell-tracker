@@ -2,6 +2,7 @@ import requests
 from PySide6.QtCore import QThread, Signal
 from typing import List, Dict, Optional
 from src.commons import is_in_game
+from src.FirebaseSync import FirebaseSync
 
 # ======================= LOCAL LIVE CLIENT WORKER =============================
 class LocalSyncWorker(QThread):
@@ -24,6 +25,7 @@ class LocalSyncWorker(QThread):
         raise RuntimeError("Not in game (Live Client API not reachable on 127.0.0.1:2999).")
 
     def run(self):
+        match_id = ""
         try:
             data = self._fetch_allgamedata()
             all_players = data.get("allPlayers", [])
@@ -32,6 +34,7 @@ class LocalSyncWorker(QThread):
             my_name = active.get("summonerName", "")
             my_team: Optional[str] = None
             for p in all_players:
+                print (f"[SYNC] Player: {p.get('summonerName','')} - Team: {p.get('team','')} - Champ: {p.get('championName','')}")
                 if p.get("summonerName", "") == my_name:
                     my_team = p.get("team"); break
             if my_team is None and all_players:
@@ -39,6 +42,8 @@ class LocalSyncWorker(QThread):
             enemy = [p for p in all_players if p.get("team") != my_team]
             result: List[Dict[str, List[str]]] = []
             for p in enemy:
+                print (f"[SYNC] Enemy: {p.get('summonerName','')} - Team: {p.get('team','')} - Champ: {p.get('championName','')}")
+                match_id += p.get("riotId","")
                 champ = p.get("championName", "Unknown") or "Unknown"
                 spells = []
                 ss = p.get("summonerSpells", {})
@@ -47,6 +52,8 @@ class LocalSyncWorker(QThread):
                         spells.append(ss[key].get("displayName", "Unknown") or "Unknown")
                 spells = (spells + ["", ""])[:2]
                 result.append({"champion": champ, "spells": spells})
+            print(f"[SYNC] Match ID: {match_id}")
+            FirebaseSync().setMatchID(match_id)
             #if not result: raise RuntimeError("Could not determine enemy team (maybe game mode not 5v5?).")
             self.finished_ok.emit(result[:5])
         except Exception as e:

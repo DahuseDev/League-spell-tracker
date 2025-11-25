@@ -19,6 +19,7 @@ from tqdm import tqdm
 LANG = "en_US"  # change if you want another locale’s champion data
 OUT_HEROES = Path("res/heroes")
 OUT_ULTS   = Path("res/ultimates")
+OUT_CHAMP_DATA = Path("res/champ_data.json")
 RETRY_COUNT = 3
 TIMEOUT = 10
 
@@ -76,9 +77,9 @@ def get_latest_version() -> str:
         raise RuntimeError("No versions returned by Data Dragon.")
     return versions[0]  # latest
 
-def list_champions(version: str) -> Dict[str, dict]:
+def list_champions(version: str, lang: str = LANG) -> Dict[str, dict]:
     # Summary of all champions (names + keys)
-    url = f"https://ddragon.leagueoflegends.com/cdn/{version}/data/{LANG}/champion.json"
+    url = f"https://ddragon.leagueoflegends.com/cdn/{version}/data/{lang}/champion.json"
     data = get_json(url)
     return data.get("data", {})
 
@@ -116,43 +117,54 @@ def main():
     ults_ok = 0
     fails = []
 
-    for champ_id, cdata in tqdm(champs.items(), desc="Champions", unit="champ"):
-        champ_name = cdata.get("name", champ_id)
-        champ_slug = slugify(champ_name)
+    # for champ_id, cdata in tqdm(champs.items(), desc="Champions", unit="champ"):
+    #     champ_name = cdata.get("name", champ_id)
+    #     champ_slug = slugify(champ_name)
 
-        # --- portrait
-        p_url = portrait_url(version, champ_id)
-        p_dest = OUT_HEROES / f"{champ_slug}.png"
-        ok_portrait = download_file(p_url, p_dest)
-        if ok_portrait:
-            portraits_ok += 1
-        else:
-            fails.append((champ_name, "portrait", p_url))
+    #     # --- portrait
+    #     p_url = portrait_url(version, champ_id)
+    #     p_dest = OUT_HEROES / f"{champ_slug}.png"
+    #     ok_portrait = download_file(p_url, p_dest)
+    #     if ok_portrait:
+    #         portraits_ok += 1
+    #     else:
+    #         fails.append((champ_name, "portrait", p_url))
 
-        # --- ultimate icon
-        try:
-            detail = get_champion_detail(version, champ_id)
-            spells = detail.get("spells", [])
-            if not spells or len(spells) < 4:
-                raise RuntimeError("No spell list or incomplete (expected 4).")
-            r_spell = spells[3]  # Q,W,E,**R** (index 3)
-            spell_id = r_spell.get("id")  # e.g., "AhriR"
-            if not spell_id:
-                raise RuntimeError("R spell has no 'id'.")
-            u_url = spell_icon_url(version, spell_id)
-            u_dest = OUT_ULTS / f"{champ_slug}.png"
-            ok_ult = download_file(u_url, u_dest)
-            if ok_ult:
-                ults_ok += 1
-            else:
-                fails.append((champ_name, "ultimate", u_url))
-        except Exception as e:
-            fails.append((champ_name, "ultimate", str(e)))
+    #     # --- ultimate icon
+    #     try:
+    #         detail = get_champion_detail(version, champ_id)
+    #         spells = detail.get("spells", [])
+    #         if not spells or len(spells) < 4:
+    #             raise RuntimeError("No spell list or incomplete (expected 4).")
+    #         r_spell = spells[3]  # Q,W,E,**R** (index 3)
+    #         spell_id = r_spell.get("id")  # e.g., "AhriR"
+    #         if not spell_id:
+    #             raise RuntimeError("R spell has no 'id'.")
+    #         u_url = spell_icon_url(version, spell_id)
+    #         u_dest = OUT_ULTS / f"{champ_slug}.png"
+    #         ok_ult = download_file(u_url, u_dest)
+    #         if ok_ult:
+    #             ults_ok += 1
+    #         else:
+    #             fails.append((champ_name, "ultimate", u_url))
+    #     except Exception as e:
+    #         fails.append((champ_name, "ultimate", str(e)))
 
     print()
     print("===== DONE =====")
     print(f"Portraits saved: {portraits_ok}")
     print(f"Ult icons saved: {ults_ok}")
+
+    champs_ES = list_champions(version, lang="es_ES")
+
+    champ_list = [
+            {c.get("name", ""): champs.get(cid, {}).get("name", "")}
+            for cid, c in champs_ES.items()
+        ]
+    with open(OUT_CHAMP_DATA, "w", encoding="utf-8") as f:
+        json.dump({"version": version, "champions": champ_list}, f, ensure_ascii=False, indent=2)
+    print(f"Champion names exported to: {OUT_CHAMP_DATA}")
+    
     if fails:
         print("Some items failed:")
         for name, kind, info in fails[:20]:

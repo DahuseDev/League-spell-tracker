@@ -16,7 +16,7 @@ def is_in_game():
                 import urllib3
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             r = requests.get(url, timeout=timeout, verify=verify)
-            print("[LCA] Tried", url, "->", getattr(r, "status_code", "no-response"))
+            # print("[LCA] Tried", url, "->", getattr(r, "status_code", "no-response"))
             if r.ok:
                 # ensure we can parse JSON (browser showed JSON body)
                 # try:

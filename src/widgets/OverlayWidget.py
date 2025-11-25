@@ -113,7 +113,7 @@ class OverlayWidget(QWidget):
         # keep original focused logic but use the precomputed league_active_window
         focused = league_active_window or getattr(self, "_is_dragging", False) or self.isActiveWindow()
         should_show = self._in_game and focused# and self.loaded
-        print(f"[TOPMOST] ingame={self._in_game} focused={focused} loaded={self.loaded} -> show={should_show}")
+        # print(f"[TOPMOST] ingame={self._in_game} focused={focused} loaded={self.loaded} -> show={should_show}")
         # perform minimal UI work on main thread
         try:
             if should_show and not self.visible:
@@ -162,7 +162,7 @@ class OverlayWidget(QWidget):
             if self._drag_pos is not None:
                 p.setBrush(QColor(50, 50, 50, 120))
             else:
-                p.setBrush(QColor(30, 30, 30, 1))
+                p.setBrush(QColor(30, 30, 30, 5))
             p.drawRect(self.rect().adjusted(0, 0, -1, -1))
         finally:
             p.end()
@@ -240,15 +240,15 @@ class OverlayWidget(QWidget):
 
     # sync
     def on_sync_clicked(self):
-        self.sync_btn.setEnabled(False)
-        print("[SYNC] Checking local client for active match…")
+        # print("[SYNC] Checking local client for active match…")
         self.worker = LocalSyncWorker()
         self.worker.finished_ok.connect(self.on_sync_ok)
         self.worker.failed.connect(self.on_sync_fail)
-        self.worker.finished.connect(lambda: (self.sync_btn.setEnabled(True)))
         self.worker.start()
 
     def on_sync_ok(self, enemies: list):
+        print("[SYNC] Retrieved enemy data:")
+        print(enemies)
         for e in enemies:
             champ = e.get("champion", "Unknown"); spells = ", ".join(e.get("spells", [])) or "Unknown"
             print(f"[SYNC] {champ}: {spells}")

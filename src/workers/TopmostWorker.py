@@ -14,7 +14,7 @@ class TopmostWorker(QThread):
 
     def run(self):
         while self._running:
-            print("[TOPMOST WORKER] Checking game/window state…")
+            # print("[TOPMOST WORKER] Checking game/window state…")
             try:
                 focused = self.is_league_active_window()
             except Exception:

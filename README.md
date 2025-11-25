@@ -12,13 +12,27 @@ Run League Assets builder.py to cache champion, spell, and ultimate icons locall
 
 You only need to do this when new champions or visual updates are added.
 
-### Start the overlay
-Launch `spell.py to` open the overlay.
+## Installation
+To install the necessary dependencies, run:
 
-### Sync with your current match
-Once you're in a game, click the 🔃 Sync icon.
+```
+pip install -r requirements.txt
+```
 
-The tool will fetch live match data and load the enemy team's champions, spells, and ultimates automatically.
+## Usage
+To run the application, execute the following command:
+
+```
+python src/SpellTracker.py
+```
+
+## Building the Release
+To generate a standalone executable for the application, you can use the provided scripts:
+
+- For Windows:
+  ```
+  build.bat
+  ```
 
 ### Adjust settings
 

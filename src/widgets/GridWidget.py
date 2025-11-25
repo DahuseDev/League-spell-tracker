@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QPoint, QSize, QRect, QThread, Signal, QTimer
 from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence, QPixmap, QFont
+from src.FirebaseSync import FirebaseSync
 # ============================== GRID CONTENT ==================================
 
 class GridWidget(QWidget):
@@ -35,6 +36,55 @@ class GridWidget(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._on_tick)
         self.timer.start(250)
+        FirebaseSync().listen(self._on_firebase_update)
+
+    def _on_firebase_update(self, event):
+        path = event.path  # e.g., "/Aatrox/ultimate"
+        data = event.data  # e.g., {"usedAt": 1234567890} or {"usedAt": 0}
+        if not path or not data:
+            return
+        parts = path.strip("/").split("/")
+        if len(parts) != 2:
+            return
+        champ, spell = parts
+        used_at = data.get("usedAt", 0)
+        now = int(time.time())
+        duration = 0
+        if spell == "ultimate":
+            duration = self._ult_base_cd(champ)
+        else:
+            duration = self._spell_base_cd(spell)
+        try:
+            duration = int(duration)
+        except Exception:
+            duration = 0
+        if duration <= 0:
+            return
+        key = None
+        for col in range(len(self.content.enemies)):
+            if self.content.enemies[col].champion == champ:
+                if spell == "ultimate":
+                    key = (3, col)
+                else:
+                    if self.content.enemies[col].spells[0] == spell:
+                        key = (1, col)
+                    elif self.content.enemies[col].spells[1] == spell:
+                        key = (2, col)
+                if key:
+                    break
+        if not key:
+            return
+        t = self.timers.get(key)
+        if not t:
+            t = CellTimer(); self.timers[key] = t
+        if used_at > 0:
+            elapsed = now - used_at
+            remaining = max(0, duration - elapsed)
+            t.start(float(remaining))
+        else:
+            t.reset()
+        print(f"[GRID] Firebase update: {champ} - {spell} usedAt={used_at}, duration={duration}s")
+        self.update()
 
     def set_scale(self, s: float):
         self._scale = max(0.25, s)
@@ -135,8 +185,7 @@ class GridWidget(QWidget):
         if t.running:
             txt = fmt_mmss(t.remaining); bg = QColor(0, 0, 0, 140)
         else:
-            if t.remaining <= 0: txt = "UP"; bg = QColor(0, 120, 0, 160)
-            else: return
+            return
         p.save()
         pill_h = max(14, int(16 * self._scale))
         r = QRect(rect.x()+2, rect.bottom()-pill_h-2, rect.width()-4, pill_h)
@@ -153,10 +202,18 @@ class GridWidget(QWidget):
         if changed: self.update()
 
     def _spell_base_cd(self, display_name: str) -> int:
-        key = slugify(display_name); return SUMMONER_CD.get(key, 0)
+        try:
+            return SUMMONER_CD.get(display_name)
+        except Exception as e:
+            print(f"Error getting spell base cooldown for {display_name}: {e}")
+            return 0
 
     def _ult_base_cd(self, champ_name: str) -> int:
-        key = slugify(champ_name); return self.ult_cd_map.get(key, DEFAULT_ULT_CD)
+        try:
+            return int(self.ult_cd_map.get(slugify(champ_name), DEFAULT_ULT_CD))
+        except Exception as e:
+            print(f"Error getting ultimate base cooldown for {champ_name}: {e}")
+            return DEFAULT_ULT_CD
 
     def mousePressEvent(self, e):
         if e.button() not in (Qt.LeftButton, Qt.RightButton):
@@ -172,20 +229,25 @@ class GridWidget(QWidget):
     def _handle_cell_click(self, row: int, col: int, e):
         if row == 0:  # champs: no timer
             return
-        if e.button() == Qt.RightButton:
+        if e.button() == Qt.RightButton: # reset
             t = self.timers.get((row, col))
             if t: t.reset(); self.update()
+            FirebaseSync().reset_spell(row, col)
             return
         duration = 0
-        if row in (1, 2):
+        champ = self.content.enemies[col].champion
+        if row in (1, 2): # summoners
             if col < len(self.content.enemies):
                 idx = 0 if row == 1 else 1
                 disp = self.content.enemies[col].spells[idx]
                 duration = self._spell_base_cd(disp)
-        elif row == 3:
+                FirebaseSync().mark_spell_used(champ, disp)
+                print(f"[GRID] Marked spell used: {champ} - {disp}")
+        elif row == 3: # ultimate
             if col < len(self.content.enemies):
-                champ = self.content.enemies[col].champion
                 duration = self._ult_base_cd(champ)
+                FirebaseSync().mark_spell_used(champ, "ultimate")
+                print(f"[GRID] Marked ultimate used: {champ} - ultimate")
         if (e.modifiers() & Qt.ShiftModifier) or duration <= 0:
             from PySide6.QtWidgets import QInputDialog
             secs, ok = QInputDialog.getInt(self, "Custom cooldown", "Seconds:", max(0, duration), 0, 9999, 1)
@@ -197,7 +259,7 @@ class GridWidget(QWidget):
 
 
 class GridContent:
-    def __init__(self, heroes_dir="heroes", spells_dir="spells", ultimates_dir="ultimates"):
+    def __init__(self, heroes_dir="res/heroes", spells_dir="res/spells", ultimates_dir="res/ultimates"):
         self.heroes_dir = heroes_dir
         self.spells_dir = spells_dir
         self.ultimates_dir = ultimates_dir
@@ -207,9 +269,24 @@ class GridContent:
         out: List[EnemyInfo] = []
         for e in enemies[:5]:
             champ = e.get("champion", "") or ""
+            champ = self.getChampName(champ)
             spells = (e.get("spells", []) or []) + ["", ""]
+            spells = [self.getSummoner(s) for s in spells]
             out.append(EnemyInfo(champion=champ, spells=spells[:2]))
         self.enemies = out
+
+    def getSummoner(self, key):
+        if SUMMONER_CD_ES.get(key):
+            return list(SUMMONER_CD.keys())[list(SUMMONER_CD_ES.keys()).index(key)]
+        return key
+    
+    def getChampName(self, key):
+        with open("res/champ_data.json", "r", encoding="utf-8") as f:
+            champ_data = json.load(f)
+        for champ in champ_data.get("champions", []):
+            if key in champ:
+                return champ[key]
+        return key
 
     def hero_path(self, idx: int) -> str:
         if idx >= len(self.enemies): return ""
@@ -222,7 +299,6 @@ class GridContent:
     def spell2_path(self, idx: int) -> str:
         if idx >= len(self.enemies): return ""
         return os.path.join(self.spells_dir, f"{slugify(self.enemies[idx].spells[1])}.png")
-
     def ultimate_path(self, idx: int) -> str:
         if idx >= len(self.enemies): return ""
         return os.path.join(self.ultimates_dir, f"{slugify(self.enemies[idx].champion)}.png")
@@ -261,17 +337,39 @@ class EnemyInfo:
 
 # ============================== COOLDOWNS =====================================
 SUMMONER_CD = {
-    "flash": 300,
-    "ignite": 180,
-    "teleport": 360,
-    "heal": 240,
-    "barrier": 180,
-    "exhaust": 210,
-    "ghost": 210,
-    "cleanse": 210,
-    "smite": 15,
-    "clarity": 240,
-    "mark": 80,
+    "Flash": 300,
+    "Hexflash": 300,
+    "Ignite": 180,
+    "Teleport": 360,
+    "Unleashed Teleport": 360,
+    "Heal": 240,
+    "Barrier": 180,
+    "Exhaust": 210,
+    "Ghost": 210,
+    "Cleanse": 210,
+    "Smite": 15,
+    "Unleashed Smite": 15,
+    "Clarity": 240,
+    "Mark": 80,
+    "Porobelt": 10,
+    "Poro_toss": 10,
+}
+
+SUMMONER_CD_ES = {
+    "Destello": 300,
+    "Hextello": 300,
+    "Prender": 180,
+    "Teleportar": 360,
+    "Teleportar desatado": 360,
+    "Curar": 240,
+    "Barrera": 180,
+    "Extenuación": 210,
+    "Fantasmal": 210,
+    "Limpiar": 210,
+    "Aplastar": 15,
+    "Aplastar desatado": 15,
+    "Claridad": 240,
+    "Marca": 80,
     "porobelt": 10,
     "poro_toss": 10,
 }
