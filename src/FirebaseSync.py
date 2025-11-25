@@ -1,9 +1,7 @@
 import time
-from weakref import ref
 import firebase_admin
 import re
 from firebase_admin import credentials,db
-import json
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,8 +13,8 @@ class FirebaseSync:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cred = credentials.Certificate("src/firebaseKey.json")
             try:
+                cred = credentials.Certificate("src/firebaseKey.json")
                 firebase_admin.initialize_app(cred, {
                     "databaseURL": cls.DB_URL or cls.DEFAULT_DB_URL
                 })
