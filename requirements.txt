@@ -1,7 +1,5 @@
 firebase-admin
 pyrebase4
 requests
-re
-time
 pystray
 python-dotenv
