@@ -192,6 +192,7 @@ class OverlayWidget(QWidget):
             print("[AUTO-SYNC] Game ended, clearing grid.")
             self.grid.clear()
             self.loaded = False
+            self._in_game = False
 
 ############################################
 ########### Mouse drag handling ############
