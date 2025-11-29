@@ -1,5 +1,4 @@
 from PySide6.QtCore import QThread, Signal
-from src.commons import is_in_game
 import pygetwindow as gw
 
 class TopmostWorker(QThread):

@@ -5,3 +5,4 @@ pystray
 python-dotenv
 PySide6
 pyinstaller
+pygetwindow
